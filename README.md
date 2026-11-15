@@ -468,6 +468,14 @@ Tests are timezone-independent: the suite passes unchanged under `TZ=UTC`,
 Design specs: [core](specs/core.md), [logging](specs/logging.md),
 [integration](specs/integration.md), [publishing](specs/publishing.md).
 
+`package.json` carries npm `overrides` forcing `glob >= 14.0.6` and
+`minimatch >= 11.0.8` across the dev/CI dependency tree: the pinned SDK's
+transitive copies are affected by published advisories and no newer SDK
+release fixes them. The overrides change no runtime behavior of this plugin
+(the SDK promise entry never imports the affected code) and are guarded by
+`test/dependencies.test.ts`; rationale and limits:
+[integration spec — Dependency security remediation](specs/integration.md#dependency-security-remediation).
+
 ## Publishing (maintainers)
 
 Releases reach npm through **staged publishing**: the GitHub Actions workflow

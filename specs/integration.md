@@ -305,6 +305,77 @@ a live OpenCode host with real provider credentials. No live-provider E2E was
 run; weekly waits are verified structurally (effect chunking + cancellable
 sleep), not by waiting a week.
 
+## Dependency security remediation
+
+Status: implemented 2026-11-15 (T5). `package.json` adds npm `overrides`
+(`glob: ^14.0.6`, `minimatch: ^11.0.8`); the lockfile resolves one patched
+copy of each across the whole tree. The SDK pin `@opencode/plugin@2.3.0`,
+all `@opencode/*` versions, `exports`, `files`, and `engines` are unchanged;
+no `src` change, so the built `dist` output is unchanged.
+
+Advisories remediated (Dependabot alerts #1/#2 on `package-lock.json`, plus
+two newer upstream advisories found during remediation):
+
+- `glob` GHSA-3g3m-2fjr-6pw4 — AbortSignal cancellation bypass allows
+  post-timeout filesystem traversal; vulnerable `>=9.0.0 <=14.0.1`, first
+  fixed 14.0.2. Also GHSA-qxr8-q827-836c (`ignore` patterns lacked the
+  `braceExpandMax` limit), fixed 14.0.6 — hence the 14.0.6 floor.
+- `minimatch` GHSA-g3hv-75wg-m249 — DoS via globparts amplification;
+  vulnerable `>=7.0.0 <11.0.1`, first fixed 11.0.1. Also
+  GHSA-cf2h-pxjq-68xw (quadratic compile time, a regression introduced in
+  11.0.0), fixed 11.0.7 — hence the 11.0.8 floor (latest 11.x).
+
+Why overrides: every vulnerable copy enters through the pinned SDK
+(`@opencode/plugin@2.3.0 → @opencode/util@2.3.0 → glob 13.0.5 /
+minimatch 10.2.5`, plus `@npmcli/arborist`, `@npmcli/config`, `pacote`,
+`cacache`, `ignore-walk`, `@tufjs/models`, and `rimraf`'s nested
+`glob 10.5.0 / minimatch 9.0.9`). `2.3.0` is the newest published
+`@opencode/plugin` (registry check 2026-11-15), so no SDK upgrade can fix
+this; overrides are the minimal root-level remediation. `npm audit` reported
+24 moderate entries, all transitive consequences of these two advisories
+(including the `gaxios`/`gcp-metadata`/`rimraf` chain via `glob`); after the
+override it reports **0 vulnerabilities**.
+
+Compatibility evidence (verified, not assumed):
+
+- The SDK **promise entry** (`dist/promise/`, the only subpath this plugin
+  imports) contains **no `@opencode/util` import** (grep of the installed
+  2.3.0 dist). The affected code is unreachable from this plugin's runtime
+  path; it serves other SDK subpaths used by the host itself.
+- Host usage at the verified commit `a6b15d33` (`packages/util/src/glob.ts`)
+  is only `glob(pattern, {cwd, absolute, dot, follow, nodir, ignore})` and
+  `minimatch(filepath, pattern, {dot:true})` — all preserved in glob 14 /
+  minimatch 11, including the `GlobOptionsWithFileTypesFalse` type export.
+- Both patched packages keep dual ESM/CJS exports and the named-export
+  surface (`minimatch`, `Minimatch`, `filter`, `braceExpand`, `match`,
+  `escape`, `unescape`; `glob`, `globSync`, `Glob`, `hasMagic`, `Ignore`).
+- No consumer in the locked tree uses any API removed in the new majors
+  (`makeRe`, `Minimatch#regexp`, `matchOne`, `slashSplit`,
+  `levelTwoFileOptimize`, `maxExtglobRecursion`, `debug`, `AST`,
+  `Pattern#isRegExp`, `Processor#testRegExp`): grep across `@npmcli/*`,
+  `ignore-walk`, `@tufjs/models`, `cacache`, `rimraf`, `@opencode/util`.
+  `ignore-walk` uses `new Minimatch(rule, opts)` + `Minimatch#match(path,
+  partial)`; `@tufjs/models` uses named `minimatch()`; `rimraf` uses
+  `glob`/`globSync` — all present. Engines `18 || 20 || >=22` satisfy this
+  repo's `>=20`.
+- Behavioral edge-case changes in minimatch 11 / glob 14 (empty path
+  portions, Windows UNC roots, multi-`**` fixes, abort actually stopping the
+  walk) are upstream's intended fixes toward Bash semantics; this repo runs
+  the full suite (including the real-SDK wrapper tests) and the package
+  smoke against the overridden tree.
+- `test/dependencies.test.ts` guards the contract offline: exact SDK pin,
+  presence of both overrides, and every locked/installed `glob`/`minimatch`
+  copy at or above the patched floors.
+
+Honest limits: npm applies `overrides` only to the **root** project install.
+This remediation secures this repository's dev/CI tree and resolves the
+lockfile-based Dependabot alerts; a consumer that installs `quota-matata`
+still resolves the SDK's own pinned transitive versions until upstream
+publishes a fix (the published package's runtime behavior is unchanged
+either way, since the promise entry never reaches the affected code).
+Removing the overrides requires a newer SDK release whose locked
+`glob`/`minimatch` meet the floors above.
+
 ## Deferred / honest limitations
 
 - Native exhaustion skips the hook: when the host's own schedule runs out,
