@@ -12,15 +12,15 @@ Standalone OpenCode v2 retry plugin implemented and independently accepted.
 Delivery closed on 2026-11-15: commit `de23ee554d12ef38501db1c75f5be93529659eff` is on local `main` and remote `refs/heads/main` (verified with `git ls-remote`). No processes/services left running. Historical delivery permissions are superseded for the current run by the explicit 2026-11-15 commit-and-push request.
 
 ## Next action
-Confirm bounded T5 state finalization, then select T6 Actions diagnosis/repair.
+No active requested work; release/publication requires separate user approval.
 
-## Current milestone — security and Actions repair
-Run `security-actions-20261115`: strict; commit and push explicitly authorized by user; ceiling6 consumed1. R1 work done; R2 review clean; R3 deep clean; T5 product e761bbd confirmed origin/main; alerts1/2 fixed; bounded state finalization pending.
-- [x] **T5 — Fix Dependabot vulnerabilities.** 2026-11-15; allowance12 consumed1; e761bbd confirmed origin/main; alerts1/2 fixed, audit0,544tests/build/smoke pass, R2/R3 clean. Archive: `.agenticale/handoffs/archive/2026-11.md`, **T5 — Dependency remediation**; state finalization confirmation required before next selection.
-- [ ] **T6 — Fix GitHub Actions failure (second priority).** Unselected; allowance not allocated. Diagnose actual failed run; repair and independently verify workflow with NPM_TOKEN now configured (user-reported). No secret disclosure or unauthorized release/package publication.
+## Completed milestone — security and Actions repair
+Run `security-actions-20261115`: strict; commit and push explicitly authorized by user; ceiling6 consumed2. R1/R4 work done; R2/R3/R5 clean; no blockers. Full ledger: archive **Session-close security-actions-20261115**.
+- [x] **T5 — Fix Dependabot vulnerabilities.** 2026-11-15; allowance12 consumed1; e761bbd and state eda260b confirmed origin/main; alerts1/2 fixed, audit0,544tests/build/smoke pass, R2/R3 clean. Archive: `.agenticale/handoffs/archive/2026-11.md`, **T5 — Dependency remediation**.
+- [x] **T6 — Resolve observed Actions failure.** 2026-11-15; allowance12 consumed1; independent R5 confirms four failed pre-fix Dependabot jobs resolved by e761bbd on origin/main. No product change required; publishing workflow never ran, token uninvolved. Historical runs remain failed; hosted publishing/auth untested. Archive: **T6 — Actions failure diagnosis**.
 - [x] Inspect and remove operative repository commit/push restrictions conflicting with this explicit invocation; no AGENTS.md or other operative restriction found; obsolete operational backlog restrictions superseded, historical audit preserved.
-User explicitly approved ordinary pushes to `origin/main` on resume. Priority checkpoint31e4b6e push confirmed by ls-remote; remote reports2 moderate vulnerabilities. Mutable surfaces: local checkout/state and remote branch/Actions/Dependabot may change concurrently; revalidate before work and every push. Never expose token values or trigger publication without separate authorization.
-Session-close pointer: `.agenticale/handoffs/archive/2026-11.md`, **security-actions-20261115 — destination gate**.
+User explicitly approved ordinary pushes to `origin/main` on resume. Priority checkpoint31e4b6e push confirmed by ls-remote; GitHub now marks both alerts fixed. Mutable surfaces: local checkout/state and remote branch/Actions/Dependabot may change concurrently; revalidate before work and every push. Never expose token values or trigger publication without separate authorization.
+Session-close pointer: `.agenticale/handoffs/archive/2026-11.md`, **Session-close security-actions-20261115**.
 
 ## Completed milestone — npm publishing
 Run `npm-publish-20261115`: strict, working-tree policy (recorded repository restriction: no new Git actions); ceiling 6 consumed 3.
@@ -46,5 +46,5 @@ Closed run `provider-positioning-20261115`: strict mode, ceiling 6 consumed 2 wo
 ## Audit
 Full round ledger, accepted-slice records, original findings, verification, allowance grant/usage and final SHA256s: `.agenticale/handoffs/archive/2026-11.md`, **Final session-close delivery — 2026-11-14**.
 Prior delivery closure and preserved handoff: same archive, **Delivery closure and backlog-only session — 2026-11-15**.
-Current state: `.agenticale/handoffs/active.md` (security/Actions run, origin/main approved); prior npm archive **T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15**.
+Current state: `.agenticale/handoffs/active.md` (security/Actions run closed, origin/main approved); prior npm archive **T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15**.
 Prior run finished at 18/20 worker rounds after explicit user doubling; all blockers closed. Provider-positioning milestone closed at 2/6 workers.

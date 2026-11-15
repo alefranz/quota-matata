@@ -1,12 +1,11 @@
 ## GOAL
-Fix Dependabot vulnerabilities first, then GitHub Actions failure; NPM_TOKEN added per user.
+CLOSED: remediate Dependabot vulnerabilities and investigate/fix observed Actions failure.
 ## ESTABLISHED
-Strict; commit and push explicitly user-authorized incl ordinary origin/main. No repo AGENTS. OpenCode profiles: implement alibaba-token-plan/qwen4-max-preview#medium; hard same#xhigh; review openai/gpt-6.1-sol#high; deep openai/gpt-6-astra#high; effective unknown.
-No provider requests, secrets exposure, releases or package publication. Preserve unrelated changes.
+Strict; commit-and-push explicitly user-authorized incl origin/main. OpenCode implement-hard alibaba-token-plan/qwen4-max-preview#xhigh; review openai/gpt-6.1-sol#high; deep openai/gpt-6-astra#high; effective unknown. No repo AGENTS; obsolete operative Git restrictions superseded, audit retained.
 ## CURRENT STATE
-Run security-actions-20261115 ceiling6 consumed1; T5 allowance12 consumed1. R1 work done,R2 review clean,R3 deep clean. Hard escalation1/1 used; periodic audit boundary e761bbd. T6 unselected. No pending rounds/fixes/consults.
-T5 product e761bbd confirmed origin/main; gh api alerts1/2 fixed. Audit0,544tests4zones,typecheck/build/smoke5 independently pass. Root-only overrides, consumer vulnerabilities disclosed. Nit T5-R3-N1 tracked. Detailed packet/reviews archive/2026-11.md heading T5 — Dependency remediation. Bounded state finalization pending; do not select T6 before confirmation.
+Run security-actions-20261115 ceiling6 consumed2; T6 allowance12 consumed1; T5 allowance12 consumed1. R1 work done,R2 review clean,R3 deep clean,R4 work done,R5 review clean. No pending dispatch/fixes/consults. T5 escalation1/1 used. Full ledger/evidence: archive/2026-11.md, Session-close security-actions-20261115.
+Product e761bbd and T5 state eda260b confirmed origin/main. Both Dependabot alerts fixed; audit0;544tests/typecheck/build/smoke5 pass. T6 no-op: all4 failed runs pre-fix Dependabot; publish workflow never ran, token uninvolved. Historical runs remain failed; hosted post-fix/Node24/release auth untested. Root overrides do not fix consumer transitive installs. Documentation nit tracked. No publication/services. T6/session-close bounded state finalization to origin/main; reconcile actual history if interrupted.
 ## ACCEPTANCE
-T5 accepted; persist state. T6 evidence-led Actions repair, relevant/full checks and strict review, never publish automatically.
+Requested outcomes independently accepted. No blockers. Existing backlog nits out of scope.
 ## NEXT
-Confirm bounded T5 state finalization push to origin/main, then select T6 Actions diagnosis/repair.
+No active requested work; any release/publication requires separate user approval.
