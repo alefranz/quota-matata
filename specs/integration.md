@@ -104,6 +104,18 @@ matches the host catalog.
   `clearTimeout` finalizer: weekly-scale waits are supported and cancellable.
   Non-finite durations never resolve; ≤ 0 yields. The core additionally keeps
   every emitted delay a finite integer ≤ 2^31−1 ms.
+- `packages/core/src/session/to-session-error.ts:38-40` (re-verified
+  2026-11-15 at the same commit) — any AI error whose body contains
+  `subscription_sharing_usage_limit_exceeded` becomes native
+  `provider.chatgpt-limit` (ChatGPT subscription usage limit), regardless of
+  the underlying reason tag.
+  `packages/core/src/plugin/provider/openai.ts:25` — the ChatGPT/Codex login
+  surface uses `https://chatgpt.com/backend-api/codex`. The plugin maps
+  `provider.chatgpt-limit` to `billing`/stop (specs/core.md, provider
+  coverage evidence). OpenAI's SIWC error-recovery docs describe that code's
+  semantics for the SIWC direct route — a different surface — so the full
+  SIWC recovery table is not claimed for the host's Codex endpoint; only
+  this shared code→type mapping is relied on.
 - Official docs (fetched 2026-11-14): `opencode.ai/docs/plugins` confirms the
   `plugins` array with `{package, options}` entries, version pinning, and `-`
   removal; `/docs/build/plugins` and `/docs/build/plugins/server` describe the
@@ -307,6 +319,10 @@ sleep), not by waiting a week.
 - Monthly subscription anniversary is not published on the wire: default
   monthly policy stops; `untilReset` retry requires a reliable caller-supplied
   `resetAtMs`. No calendar reset is invented.
+- ChatGPT subscription usage limits (`provider.chatgpt-limit`) stop via the
+  generic billing rule: the adapter schedules no reset-based retry for them
+  and infers no reset time. Stop is a non-retry policy, not a claim of
+  literal permanence (see specs/core.md, provider coverage evidence).
 - HTTP observation is metadata-only by design: no body is read, so provider
   codes for classification come from the retry hook's error body, not the
   HTTP surface. The same failure may appear on several surfaces; the shared

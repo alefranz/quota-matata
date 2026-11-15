@@ -2,11 +2,13 @@
 
 **No worries, just retries.**
 
-MIT-licensed quota-aware retry plugin for OpenCode v2, with first-class
-support for the Alibaba Cloud Model Studio / Coding Plan (`alibaba` provider)
-and safe generic policies for every other provider. It also ships a pure,
-SDK-free decision core and a privacy-safe JSONL diagnostics logger you can
-use standalone.
+MIT-licensed quota-aware retry plugin for OpenCode v2. It is
+provider-agnostic: a generic classification and policy engine applies to
+every provider out of the box, and optional provider-specific rules layer on
+top only where official documentation justifies them (Alibaba Cloud Model
+Studio / Coding Plan rules ship enabled for the `alibaba` provider). It also
+ships a pure, SDK-free decision core and a privacy-safe JSONL diagnostics
+logger you can use standalone.
 
 ## Install (OpenCode v2)
 
@@ -59,15 +61,99 @@ provider, primary and subagent sessions alike:
 
 - **Retry hook**: classifies each failure the host consults plugins for and
   applies only validated policy overrides to the host's retry decision
-  (force a bounded retry, stop permanent failures, or leave the native
-  decision untouched). On any internal error it falls back to the native
-  decision — it never throws into the host.
+  (force a bounded retry, stop failures the policy treats as non-retryable,
+  or leave the native decision untouched). On any internal error it falls
+  back to the native decision — it never throws into the host.
 - **Terminal events**: logs the final failure even when the host's native
   retry schedule was exhausted and the retry hook never ran.
 - **HTTP metadata**: optionally observes HTTP ≥ 400 status/`Retry-After`
   metadata. It never reads requests, URLs, or response bodies.
 - Waits are the host's own cancellable sleeps: no plugin timers, schedulers,
   or global retry counters; credentials and model selection are never edited.
+
+## Provider coverage
+
+The plugin is generic first. Every provider gets the same conservative
+engine: native host error types, HTTP status, and safely parsed provider
+codes decide the category, and most categories keep the host's native retry
+decision (`no_override`) — the generic fallback does **not** retry every
+error. Provider-specific rules are optional additions that run only when the
+host's provider ID matches a configured provider key or alias
+(case-insensitive) — never by model name. Only the Alibaba Coding Plan rule
+set ships enabled today. There is no promise of universal compatibility:
+coverage depends on what the host surfaces in the error, and unrecognized
+failures keep native handling.
+
+### Alibaba: Coding Plan vs Token Plan
+
+These are separate products with separate API keys and Base URLs (official
+[Token Plan FAQ](https://www.alibabacloud.com/help/en/model-studio/token-plan-faq),
+fetched 2026-11-15):
+
+- **Coding Plan** — supported by the five plan phrases in the category table
+  below (5-hour, weekly, monthly, short-period rate, concurrency), sourced
+  from the official Coding Plan FAQ.
+- **Token Plan** — a subscription with a monthly quota that resets per
+  *subscription month*: based on the subscription date, not the calendar
+  month, with no carryover and no published reset time-of-day
+  ([Usage and quota](https://www.alibabacloud.com/help/en/model-studio/token-plan-usage-quota)).
+  Official docs describe `429 insufficient_quota` / `Your token-plan quota
+  has been exhausted.` as plan/usage-pack exhaustion (wait for the next
+  subscription month, upgrade, or buy a usage pack), and `429 Requests rate
+  limit exceeded` as short-period rate limiting (wait about a minute). The
+  [Codex guide](https://docs.qwencloud.com/developer-guides/clients-and-developer-tools/codex)
+  also documents bare `429 Allocated quota exceeded` as Token Plan exhaustion
+  and shows a human-readable reset hint (`The quota will reset at HH:MM:SS
+  UTC`) — a documentation example, not a stable wire format.
+
+  The plugin has **no Token Plan-specific parsing or scheduling**. Under the
+  `alibaba` provider ID, the exhaustion phrase and `insufficient_quota` map
+  to `quota_unknown` (no override), because the same surface text is
+  ambiguous with Coding Plan throttling; under any other provider ID they
+  get generic handling (`rate_limit`/`quota_unknown`, both no override). The
+  documented OpenCode integration for Token Plan uses the custom provider ID
+  `qwencloud-token-plan-personal`
+  ([QwenCloud OpenCode guide](https://docs.qwencloud.com/developer-guides/clients-and-developer-tools/opencode)),
+  which does not match the `alibaba` classifier by default. Reset hints in
+  error text are never parsed into retry schedules.
+
+### OpenAI: ChatGPT/Codex subscription vs API billing
+
+Subscription usage (ChatGPT sign-in, including Codex) and API-key billing
+are separate contracts:
+
+- Official [Codex pricing docs](https://learn.chatgpt.com/docs/pricing)
+  (fetched 2026-11-15) publish five-hour usage *estimates* for Plus and
+  Standard Business only; Pro plans currently have no five-hour limit.
+  Weekly limits may also apply. The estimates are not fixed message limits,
+  and current limits/reset times live in the usage dashboard — the plugin
+  assumes none of these windows.
+- When a ChatGPT subscription usage limit is hit, OpenCode maps the
+  provider's `subscription_sharing_usage_limit_exceeded` error to the native
+  `provider.chatgpt-limit` type (host source, commit `a6b15d33`). The plugin
+  classifies that as `billing` and **stops** — it does not retry blindly.
+  A stop here is a policy decision, not a claim that the subscription is
+  permanently exhausted: OpenAI's
+  [Sign-in-with-ChatGPT error docs](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery)
+  say to pause requests and check the usage dashboard, and not to assume the
+  whole plan is empty or infer a reset time (app-specific limits can apply).
+  Recovery can come from a reset or added credits; the plugin schedules
+  neither. Those docs describe the SIWC direct route, while OpenCode's
+  ChatGPT login uses `chatgpt.com/backend-api/codex` — the full SIWC recovery
+  table is therefore not claimed for that surface; only the host's shared
+  error-code mapping is relied on.
+- API-key usage is pay-per-token under separate API pricing; its quota and
+  billing errors get the generic rules (e.g. 402/billing markers stop, a
+  bare 429 keeps native handling).
+
+### Observations are not contracts
+
+The plan identity behind any particular user's observations is not confirmed
+here. Observed monthly, five-hour, or seven-day windows are observations,
+not provider contracts; the plugin never invents reset dates or timing
+heuristics from them. Future provider-specific rules must be justified by
+official documentation plus sanitized diagnostic evidence (see Logging),
+and verified with offline tests — never by live provider probing.
 
 ## Categories and default policies
 
@@ -81,9 +167,15 @@ provider, primary and subagent sessions alike:
 | `rate_limit` | Native/unknown rate limits (incl. bare 429) | **no_override** — native handling preserved |
 | `quota_unknown` | Unrecognized quota errors (incl. bare `Allocated quota exceeded`, `insufficient_quota`) | **no_override** |
 | `provider_unavailable` | Provider internal errors / 5xx | **no_override** |
-| `authentication` | Auth failures (401/403, `InvalidApiKey`, native `provider.auth`) | **stop** (permanent) |
-| `billing` | Permanent billing failures (`Arrearage`, `*BillOverdue`, `BudgetLimitExceeded`, 402, …) | **stop** (permanent) |
+| `authentication` | Auth failures (401/403, `InvalidApiKey`, native `provider.auth`) | **stop** — no retry until credentials/config change |
+| `billing` | Billing/usage-limit failures treated as non-retryable (`Arrearage`, `*BillOverdue`, `BudgetLimitExceeded`, 402, native budget/free/ChatGPT-limit types, …) | **stop** — see note below |
 | `other` | Everything else | **no_override** |
+
+A `stop` is a policy decision not to retry blindly — not a claim that the
+underlying condition is literally permanent. Subscription usage limits
+(e.g. OpenAI's `provider.chatgpt-limit`) can lift with time or added credits;
+the plugin still stops instead of guessing a reset, and configuration
+validation refuses to make `billing`/`authentication` retryable.
 
 Safety invariants:
 
@@ -91,7 +183,7 @@ Safety invariants:
   matched case-insensitively, with surrounding text and inside structured
   JSON bodies (DashScope and OpenAI-style envelopes).
 - Unknown/native rate limits are never overridden by default.
-- Permanent billing/auth errors stop; config validation refuses to make them
+- Billing/auth errors stop; config validation refuses to make them
   retry. Definitive permanent evidence (native `provider.auth`/billing types,
   HTTP 401/402/403, and recognized billing messages such as “insufficient
   balance”, “run out of credits”, “billing error”, “bill is overdue”) outranks
@@ -161,12 +253,17 @@ See [specs/core.md](specs/core.md) for the full design and rule order.
 
 ### Providers
 
+Generic rules apply to every provider. Provider-specific rules match the
+host's provider ID against configured keys/aliases (case-insensitive):
 Alibaba classification ships enabled; every other provider gets the generic
-rules only. Provider-specific phrases can never match another provider
-(isolation is tested). Add aliases (e.g. `dashscope`) or disable the Alibaba
-classifier with `providers.alibaba.enabled: false`; tune per-provider
-category policies with field-level overrides. `model` is context only — there
-is deliberately no per-model rule language.
+rules only — including custom provider IDs such as the documented Token Plan
+integration `qwencloud-token-plan-personal`, unless you alias them. For the
+documented Token Plan exhaustion/rate-limit errors, aliasing does not change
+the outcome: they remain no-override. Provider-specific phrases can never
+match another provider (isolation is tested). Add aliases (e.g. `dashscope`)
+or disable the Alibaba classifier with `providers.alibaba.enabled: false`;
+tune per-provider category policies with field-level overrides. `model` is
+context only — there is deliberately no per-model rule language.
 
 ## Logging (JSONL diagnostics)
 
@@ -244,6 +341,18 @@ Full model in [specs/logging.md](specs/logging.md). Summary:
   best-effort defense-in-depth, not a guarantee — the default withhold is the
   primary control.
 
+### Diagnostics as evidence for future provider rules
+
+These sanitized records are the intended evidence base for extending
+provider coverage: the stable `rule` id, `matched` provider (when a
+provider-specific rule matched), vetted provider codes, status, and decision
+fields show what the host actually surfaced — without credentials, prompts,
+or raw response bodies. New provider rules should be justified by official
+documentation plus such sanitized evidence (opt-in `captureErrorDetails`
+when structural fields are not enough), and verified with offline synthetic
+tests — never by live provider probing or by collecting/sharing raw
+sensitive logs.
+
 ## Extending / standalone core API
 
 The package root is the plugin entry; the same named exports are available
@@ -314,6 +423,10 @@ tarball. Host facts that shape the plugin (source evidence in
 
 Honest limits:
 
+- **Provider coverage**: provider-specific rules are limited to the
+  documented Alibaba Coding Plan phrases. Token Plan exhaustion and ChatGPT
+  subscription usage limits are handled conservatively (no override / stop)
+  with no reset scheduling — see [Provider coverage](#provider-coverage).
 - **Verification boundary**: compatibility is verified against host source,
   the published SDK types/runtime, boundary tests with real SDK shapes, and a
   pack→install→import smoke test — not against a live host with real provider

@@ -9,7 +9,9 @@ slices and are deliberately out of scope here.
 Goals:
 
 1. Classify provider errors deterministically into quota/rate/auth/billing
-   categories, with Alibaba Coding Plan mappings that match official guidance.
+   categories for every provider (generic rules), with optional
+   provider-specific mappings — Alibaba Coding Plan today — that match
+   official guidance.
 2. Decide, purely, whether to leave the host's native retry decision alone
    (`no_override`), force a bounded retry (`retry` + delay), or `stop`.
 3. Strict, small-surface configuration with safe defaults, per-category
@@ -86,6 +88,97 @@ Error-code page (alibabacloud.com/help/en/model-studio/error-code):
   Codex page documents bare “429 Allocated quota exceeded” as token-plan
   exhaustion. Because the same surface text covers both, it maps to
   `quota_unknown` (no override), never to a plan category.
+
+## Provider coverage evidence (2026-11-15; documentation only, no runtime change)
+
+Positioning: the engine is generic/provider-agnostic first; provider-specific
+rules are optional, documentation-justified additions keyed by provider-ID
+config matching (canonical key or alias, case-insensitive), never by model.
+Only `alibaba` ships enabled. The generic fallback is conservative — most
+categories are `no_override`; it does not retry every error. No universal
+compatibility is claimed.
+
+### Alibaba Token Plan is not Coding Plan
+
+Public docs re-verified 2026-11-15 (no credential probes):
+
+- [Token Plan FAQ](https://www.alibabacloud.com/help/en/model-studio/token-plan-faq)
+  (updated 2026-11-13): Token Plan, Coding Plan, and pay-as-you-go API keys
+  and Base URLs are isolated (Token Plan keys start `sk-sp-`).
+  `429 insufficient_quota: Your token-plan quota has been exhausted.` means
+  plan/usage-pack exhaustion — wait for the next subscription month, upgrade,
+  or purchase a usage pack. `429 Requests rate limit exceeded` is
+  short-period rate limiting (wait about one minute; dynamic limits).
+  401/403/404 are key/Base-URL/model configuration errors; 502 is transient.
+- [Usage and quota](https://www.alibabacloud.com/help/en/model-studio/token-plan-usage-quota)
+  (updated 2026-11-13): quota resets per **subscription month**, based on the
+  subscription date, not the calendar month; no carryover; no published
+  reset time-of-day. Exhaustion blocks Credit-consuming calls; there is no
+  automatic pay-as-you-go fallback.
+- [Codex guide](https://docs.qwencloud.com/developer-guides/clients-and-developer-tools/codex):
+  bare `429 Allocated quota exceeded` or the token-plan exhaustion message
+  means monthly Token Plan exhaustion; the documented reset hint example
+  `The quota will reset at HH:MM:SS UTC` is UTC and shows a time without a
+  date. It is a documentation example, not a stable wire format, and is not
+  parsed by this plugin.
+- [OpenCode guide](https://docs.qwencloud.com/developer-guides/clients-and-developer-tools/opencode):
+  the documented Token Plan integration is a custom provider with ID
+  `qwencloud-token-plan-personal` (connect label “Alibaba Token Plan
+  (China)”), listing models such as `qwen4-max-preview`. That provider ID
+  does not match the `alibaba` classifier by default.
+
+Current runtime consequence (unchanged by this documentation slice): there
+is **no Token Plan-specific parsing or scheduling**. Under `alibaba`, the
+exhaustion phrase and `insufficient_quota` match `alibaba.quota_unknown`
+(no override) because the surface text is ambiguous with Coding Plan
+throttling; under any other provider ID the same errors get generic handling
+(`rate_limit` on 429 / `quota_unknown` on native quota types — both
+no override). Aliasing the Token Plan provider ID to `alibaba` changes rule
+attribution, not these outcomes. The user's actual plan identity is
+unconfirmed; observed monthly/5-hour/7-day windows are observations, not
+contracts, and no reset dates or timing heuristics are invented from them.
+Any future Token Plan handling is conditional future work requiring
+documented wire evidence plus sanitized diagnostics and offline tests.
+
+### OpenAI: subscription usage vs API billing
+
+Public docs re-verified 2026-11-15:
+
+- [Codex pricing](https://learn.chatgpt.com/docs/pricing): five-hour usage
+  estimates apply to Plus and Standard Business only; **Pro plans currently
+  have no five-hour limit**; weekly limits may also apply. The estimates are
+  not fixed message limits; current limits and reset times are shown in the
+  usage dashboard. Credits can extend usage; API-key usage is billed
+  separately at API token prices. None of these windows is assumed by the
+  plugin, and “currently” is a dated observation, not a contract.
+- [SIWC errors and recovery](https://developers.openai.com/siwc/token-sharing-open-source/errors-and-recovery):
+  `subscription_sharing_usage_limit_exceeded` (429) means pause new requests
+  and check ChatGPT Settings → Usage; do not assume the entire plan is empty
+  or infer a reset time from the code alone (app-specific limits can apply).
+  `subscription_sharing_usage_unavailable`/`user_unavailable` (503) warrant
+  bounded backoff; `invalid_user` (401) re-sign-in;
+  `user_not_eligible`/`route_not_supported`/`chatpass_v2_*` (403) must not be
+  repeated; `unsupported_capability` (400) must not retry the same body.
+  **Applicability caveat:** these docs describe the Sign-in-with-ChatGPT
+  direct route (`POST /v1/responses`). OpenCode's ChatGPT/Codex login uses
+  `https://chatgpt.com/backend-api/codex`
+  (`packages/core/src/plugin/provider/openai.ts:25`, host commit `a6b15d33`,
+  re-verified 2026-11-15) — a different surface, so the full SIWC recovery
+  table is not claimed for it.
+- Host mapping relied on instead:
+  `packages/core/src/session/to-session-error.ts:38-40` (same commit) maps
+  any AI error whose body contains `subscription_sharing_usage_limit_exceeded`
+  to native `provider.chatgpt-limit`. The generic `billing` rule matches that
+  type, so the plugin **stops**.
+
+Stop semantics: `billing`/`authentication` `stop` is a conservative
+non-retry policy, not an assertion that the condition is literally permanent.
+A ChatGPT subscription usage limit can lift with time or added credits; the
+plugin still refuses to guess a reset, and config validation continues to
+refuse retry for these categories. Other subscription failures surface as
+native types/statuses and get generic handling (401/403 → authentication
+stop; 503 → `provider_unavailable`, no override). API-key billing/quota
+errors likewise get generic handling only.
 
 ## Architecture
 
@@ -330,3 +423,11 @@ Asia/Shanghai, Pacific/Kiritimati.
   slice.
 - Monthly until-reset requires the caller/adapter to supply a reliable reset
   instant; no documented wire field for it is assumed today.
+- No Token Plan-specific classification or reset handling: its exhaustion
+  text is deliberately `quota_unknown` under `alibaba` (ambiguous surface)
+  and generic elsewhere; the subscription-month reset is not parsed from
+  error text. Any addition is conditional future work requiring documented
+  wire evidence plus sanitized diagnostics and offline tests.
+- No ChatGPT subscription reset scheduling: `provider.chatgpt-limit` stops
+  via generic billing; reset/credit recovery is left to the user and the
+  provider dashboard (see provider coverage evidence above).

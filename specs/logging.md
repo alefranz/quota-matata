@@ -278,6 +278,21 @@ enumerating unknown payload shapes.
   failure/drop counters for diagnostics without reading files.
 - `captureErrorDetails` remains the user's explicit privacy opt-in.
 
+## Diagnostics as evidence for provider coverage
+
+The sanitized event stream is the intended evidence base for future
+provider-specific rules: `rule`/`matched` provenance, vetted structural
+codes, status, and decision fields record what the host actually surfaced,
+without credentials, prompts, or raw response bodies. Because free text is
+withheld by default and redaction is best-effort, evidence gathering must
+stay within this model: `captureErrorDetails` only as an explicit opt-in,
+never log or share credentials or raw sensitive bodies, and never probe live
+providers to collect samples. New provider rules require official
+documentation plus such sanitized evidence, verified by offline synthetic
+tests (specs/core.md, provider coverage evidence). Unknown-error records
+(`generic.other`, structure-only) are deliberately kept so gaps in provider
+coverage remain visible instead of silently disappearing.
+
 ## Verification
 
 The `test/logging.test.ts` suite covers directory resolution
