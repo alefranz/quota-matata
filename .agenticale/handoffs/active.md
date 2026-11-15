@@ -1,15 +1,15 @@
 ## GOAL
-CLOSED: provider-agnostic positioning and evidence-led coverage.
+CLOSED: add npm publishing workflow and exact npm/GitHub setup; no publication.
 ## ESTABLISHED
-Strict mode; working-tree only. No commit/push/branch/publication authorization. Baseline/main HEAD de23ee554d12ef38501db1c75f5be93529659eff. No live provider/API/auth/inference testing, credentials or deliberate errors; public docs/offline checks only.
-T1 evidence, T2 accepted docs/review and T3 decision archived in archive/2026-11.md under task headings and Session-close — provider-positioning-20261115 — 2026-11-15.
-README + specs/{core,integration,logging}.md generic-first, sourced provider limitations; runtime unchanged. Six public sources independently checked. Worker typecheck/540 tests passed; reviewer typecheck/537 targeted tests +16 assertions passed. Build/smoke not rerun docs-only.
+Strict; working-tree policy due recorded Git restriction. No commits/pushes/branches/releases/publication or credential use. Baseline main d620251; no submodules.
+OpenCode profiles: implement-hard alibaba-token-plan/qwen4-max-preview#xhigh, review openai/gpt-6.1-sol#high, review-deep openai/gpt-6-astra#high; effective unknown.
+Full records: archive/2026-11.md, T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15.
 ## CURRENT STATE
-Run provider-positioning-20261115 ceiling 6 consumed 2; task T3 allowance 12 consumed 0. T1/T2 each allowance12 consumed1; all tasks closed, no pending dispatch. Reviews1, consults1, fixes0, deep0; no extensions.
-R1 work done; R2 work done; R3 review clean; R4 consult done — retain generic handling (high confidence). Independently advised decision adopted, user can veto.
-T3 no safely justified change without confirmed product/route/provider mapping and sanitized host-wire exhaustion evidence. Reset parsing needs unambiguous documented instant. Native retries may still continue on genuine exhaustion.
-Working-tree persistence confirmed; git diff --check clean, no runtime/test/dependency delta. Four product docs + three operational files modified, no commits/pushes. R3-N1/N2 and R11-N1/N2 tracked in BACKLOG. No services started.
+Run npm-publish-20261115 ceiling6 consumed3; T4 allowance12 consumed3. Only R1/R3/R6 charged. Slice fix1/2/review2/3; deep escalation1/1,fix1/2,re-audit1/2; no pending rounds/extensions.
+R1 work done; R2 findings; R3 fix done; R4 clean; R5 deep findings; R6 fix done; R7 deep clean. No open findings/nits for T4.
+README + new .github/workflows/publish.yml and specs/publishing.md accepted. Working-tree persistence verified; HEAD unchanged, no runtime/package version changes. Account/secret setup and live stage/approval remain user actions, intentionally untested.
+Independent real0.1.0 and scratch0.1.1: typecheck,540tests,build,smoke5 pass; workflow lint/gate probes and offline stage dry-run pass. Hosted execution untested. No surviving services.
 ## ACCEPTANCE
-Generic-first docs independently accepted, existing Alibaba/generic handling preserved, uncertainty explicit; conditional runtime work closed based on evidence limitations.
+Safe release-triggered npm staging, identity/check gates, exact token/secret/2FA/first-publication instructions and release-version synchronization independently accepted. Working-tree finalization complete; nothing published.
 ## NEXT
-Wait for new user direction; reopen Token Plan handling only with confirmed identity/route/provider mapping and sanitized existing retry-hook evidence, without live testing.
+User configures npm stage-only token and GitHub NPM_TOKEN per README; separately review/commit changes before triggering a release and approving its npm stage with2FA.

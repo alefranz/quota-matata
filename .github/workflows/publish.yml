@@ -1,0 +1,173 @@
+# Quota Matata — npm publishing via staged releases.
+#
+# Trigger: a GitHub Release is published (explicit human action). Drafts do
+# not fire this event; prereleases are skipped by the job gate below.
+#
+# Path: validate -> `npm stage publish` with the NPM_TOKEN secret (a granular
+# access token, "Read and write (stage only)", Bypass 2FA OFF). Staging does
+# NOT make the released version public: a maintainer must approve it with
+# 2FA on npmjs.com (Staged Packages tab) or via `npm stage approve
+# <stage-id>`. (For a brand-new package, staging itself creates the package
+# by publishing a public 0.0.0-stage placeholder; the staged version and
+# its contents stay private until approval.)
+# npm removes direct token publishing in January 2027; staged publishing is
+# the supported token-based CI/CD path. See README "Publishing (maintainers)"
+# and specs/publishing.md for setup, rotation, and first-publication facts.
+#
+# The workflow never runs `npm publish` and never approves a stage itself.
+
+name: Publish to npm (staged)
+
+on:
+  release:
+    types: [published]
+
+# Least privilege: read the tagged source only. No OIDC/id-token, no write
+# scopes; the npm credential is the repository secret NPM_TOKEN, injected
+# into the single staging step below.
+permissions:
+  contents: read
+
+# Serialize publishing runs; never cancel a run that may be mid-staging.
+concurrency:
+  group: publish-npm
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    name: Validate and stage for 2FA approval
+    # Stable releases only. Prereleases must not silently reach the `latest`
+    # dist-tag; publish them manually with an explicit --tag if ever needed.
+    if: github.event.release.prerelease == false
+    runs-on: ubuntu-latest
+    steps:
+      # Pinned to commit SHAs (verified 2026-11-15 via the GitHub API);
+      # comments record the release tags they correspond to.
+      - name: Check out the release tag
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        # On a release event this checks out refs/tags/<release tag>, i.e.
+        # exactly the tagged source the maintainer released.
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org'
+          # Never restore dependency caches in a release build (npm docs:
+          # cache poisoning risk in publishing workflows).
+          package-manager-cache: false
+
+      - name: Pin npm for staged publishing
+        # Staged publishing requires npm >= 11.15.0 (Node >= 22.14.0).
+        # Node 24 ships npm 11.x; pin the major explicitly so the gate below
+        # is deterministic regardless of the runner image's bundled npm.
+        run: npm install --global npm@11
+
+      - name: Toolchain gates (Node >= 22.14.0, npm >= 11.15.0)
+        run: |
+          node -e '
+            const { execSync } = require("node:child_process");
+            const [nMajor, nMinor] = process.versions.node.split(".").map(Number);
+            if (nMajor < 22 || (nMajor === 22 && nMinor < 14)) {
+              console.error(`Node ${process.versions.node} is below the staged-publishing minimum 22.14.0`);
+              process.exit(1);
+            }
+            const npmVersion = execSync("npm --version", { encoding: "utf8" }).trim();
+            const [pMajor, pMinor] = npmVersion.split(".").map(Number);
+            if (pMajor < 11 || (pMajor === 11 && pMinor < 15)) {
+              console.error(`npm ${npmVersion} is below the staged-publishing minimum 11.15.0`);
+              process.exit(1);
+            }
+            console.log(`toolchain ok: node ${process.versions.node}, npm ${npmVersion}`);
+          '
+
+      - name: Install dependencies (lockfile-exact)
+        run: npm ci
+
+      - name: Package identity and release tag gates
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const pkg = JSON.parse(fs.readFileSync("package.json", "utf8"));
+            const tag = process.env.RELEASE_TAG || "";
+            if (pkg.name !== "quota-matata") {
+              console.error(`package name "${pkg.name}" is not quota-matata; refusing to publish`);
+              process.exit(1);
+            }
+            if (pkg.private === true) {
+              console.error("package.json is marked private; refusing to publish");
+              process.exit(1);
+            }
+            // Canonical stable semver only: each component is 0 or a nonzero
+            // digit followed by digits. npm normalizes leading zeros
+            // (00.1.0 -> 0.1.0), so a non-canonical version would stage a
+            // different version than the one the release tag names.
+            if (!/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/.test(pkg.version)) {
+              console.error(`version "${pkg.version}" is not canonical stable semver X.Y.Z (no leading zeros allowed)`);
+              process.exit(1);
+            }
+            const tagVersion = tag.replace(/^v/, "");
+            if (tagVersion !== pkg.version) {
+              console.error(`release tag "${tag}" does not match package version ${pkg.version}`);
+              process.exit(1);
+            }
+            console.log(`identity ok: ${pkg.name}@${pkg.version} (release tag ${tag})`);
+          '
+
+      - name: Version must not already be published
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if out="$(npm view "quota-matata@${version}" version 2>&1)"; then
+            echo "::error::quota-matata@${version} already exists on npm; bump the version first"
+            exit 1
+          elif printf '%s' "$out" | grep -q 'E404'; then
+            echo "quota-matata@${version} is not on the registry yet; OK to stage"
+          else
+            echo "::error::could not verify registry state (failing closed): ${out}"
+            exit 1
+          fi
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Package smoke (pack -> install -> import; nothing published)
+        run: npm run smoke
+
+      - name: Staging dry-run preflight (no registry writes)
+        run: npm stage publish --dry-run
+
+      - name: Stage the release on npm (2FA approval still required)
+        env:
+          # The only step that receives the npm credential. setup-node's
+          # .npmrc references ${NODE_AUTH_TOKEN}; the token must be a
+          # granular access token with "Read and write (stage only)" and
+          # Bypass 2FA disabled (see README).
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "::error::repository secret NPM_TOKEN is not set; see README 'Publishing (maintainers)'"
+            exit 1
+          fi
+          npm stage publish --access public
+
+      - name: Approval instructions
+        if: success()
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          {
+            echo "## Staged quota-matata@${version} — NOT live yet"
+            echo ""
+            echo "A maintainer must approve the staged version with 2FA:"
+            echo "- npmjs.com → account → **Staged Packages** tab → review → **Approve**, or"
+            echo "- \`npm stage list quota-matata\` then \`npm stage approve <stage-id>\` (2FA prompt)."
+            echo ""
+            echo "Reject with \`npm stage reject <stage-id>\` if anything looks wrong."
+          } >> "$GITHUB_STEP_SUMMARY"

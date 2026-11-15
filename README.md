@@ -466,7 +466,149 @@ npm run smoke      # pack -> temporary install -> import checks (no publish)
 Tests are timezone-independent: the suite passes unchanged under `TZ=UTC`,
 `TZ=America/New_York`, `TZ=Asia/Shanghai`, and `TZ=Pacific/Kiritimati`.
 Design specs: [core](specs/core.md), [logging](specs/logging.md),
-[integration](specs/integration.md).
+[integration](specs/integration.md), [publishing](specs/publishing.md).
+
+## Publishing (maintainers)
+
+Releases reach npm through **staged publishing**: the GitHub Actions workflow
+[`.github/workflows/publish.yml`](.github/workflows/publish.yml) validates a
+release and *stages* it with `npm stage publish`; a maintainer then approves
+the staged version **with 2FA** before it becomes public. CI alone never
+publishes the released version; for a brand-new package, staging itself
+creates the package with a public `0.0.0-stage` placeholder (see "First
+publication" below). This is npm's supported token-based CI/CD path:
+npm removes direct publishing with granular access tokens in **January 2027**
+([npm docs](https://docs.npmjs.com/about-access-tokens)), and staging keeps a
+human 2FA proof-of-presence on every release.
+
+Flow: publish a GitHub Release → workflow gates (toolchain, package identity,
+tag/version match, version-not-already-published, typecheck, tests, build,
+package smoke, staging dry-run) → `npm stage publish` using the `NPM_TOKEN`
+secret → maintainer approves with 2FA → version is live.
+
+### One-time setup
+
+1. **npm account with 2FA enabled.** Staged publishing requires 2FA on the
+   account (approval is a 2FA challenge; npm uses security keys/passkeys).
+   See [npm 2FA docs](https://docs.npmjs.com/about-two-factor-authentication).
+2. **Create a granular access token** on
+   [npmjs.com](https://www.npmjs.com) → profile → **Access Tokens** →
+   **Generate New Token** (granular tokens can currently only be created on
+   the website, not via the CLI):
+   - **Token name:** e.g. `quota-matata-ci-stage`.
+   - **Bypass two-factor authentication:** leave **unchecked** (the default).
+     This workflow never needs it.
+   - **Packages and scopes → Permissions:** **Read and write (stage only)**.
+     The token can stage versions for review but cannot publish directly
+     (`npm publish` with it fails with `E_STAGE_REQUIRED`).
+   - **Select Packages:** *Only select packages and scopes* → `quota-matata`.
+     **First-release caveat:** the selector lists packages your account
+     already has access to, and `quota-matata` does not exist yet (see
+     below). For the very first release, temporarily choose **All Packages**,
+     then once the package exists (after the first staging) replace the token
+     with a `quota-matata`-only one and revoke the broad token. (Inference
+     from the documented selector; verify in the UI.)
+   - **Organizations:** **No access** (org access never grants publishing
+     rights anyway).
+   - **Expiration:** pick a bounded period (e.g. 90 days; any date ≥ 1 day in
+     the future). Rotate before it expires (below).
+   - **Allowed IP Ranges:** optional; GitHub-hosted runner egress IPs are
+     dynamic, so an IP allowlist is impractical for this workflow.
+   - Copy the token immediately — the full value is shown only once.
+3. **Create the GitHub secret:** repository **Settings → Secrets and
+   variables → Actions → New repository secret**, name exactly **`NPM_TOKEN`**,
+   value = the token. The workflow injects it only into the final staging
+   step (as `NODE_AUTH_TOKEN`); no other step sees it.
+
+### Cutting a release
+
+1. Bump the version in **every version site** — they must stay in sync:
+   - `version` in `package.json` and `package-lock.json` (e.g.
+     `npm version 0.1.1 --no-git-tag-version` updates both without touching
+     Git).
+   - `PLUGIN_VERSION` in `src/logging.ts` — exported at runtime and stamped
+     into every diagnostic event; the package smoke test asserts it equals
+     the packed version.
+   - The literal version assertions in `test/entry.test.ts`
+     (`core.PLUGIN_VERSION`) and `test/adapter.test.ts` (`event.pluginVersion`).
+2. Verify locally before tagging: `npm run typecheck && npm test &&
+   npm run build && npm run smoke`. A missed site fails here (smoke reports
+   e.g. `0.1.0 !== 0.1.1`), before anything is committed or tagged.
+3. Commit, tag `v<version>` (e.g. `v0.1.1`), push the tag.
+4. Create a GitHub Release from that tag and **publish** it (not a draft, and
+   **not a prerelease** — prereleases are skipped by the workflow; the tag
+   must equal the package version, with or without the `v` prefix). The
+   version must be canonical stable semver `X.Y.Z` — no leading zeros
+   (`00.1.0` is rejected: npm would silently normalize it to `0.1.0`).
+5. The workflow runs all gates and stages the version. Its summary shows the
+   approval instructions.
+6. **Approve with 2FA:** npmjs.com → account → **Staged Packages** tab →
+   review (name, version, dist-tag, shasum; download the tarball if needed) →
+   **Approve**; or `npm stage list quota-matata` then
+   `npm stage approve <stage-id>`. Reject with `npm stage reject <stage-id>`
+   if anything looks wrong. Only after approval is the version public.
+
+### First publication — facts and limits
+
+- As of **2026-11-15**, `npm view quota-matata` returns **404**: the name is
+  unclaimed on the public registry. Nothing reserves it — it must still be
+  free when the first `npm stage publish` runs.
+- The **first staging creates the package**: staging a brand-new package
+  immediately publishes a **public placeholder version `0.0.0-stage`**, owned
+  by the npm account whose token staged it. The staged version and its
+  contents stay private until approval; approval then publishes the staged
+  version to the package page
+  ([npm docs](https://docs.npmjs.com/staged-publishing)). No ownership is
+  assumed or pre-configured anywhere in this repository.
+- A version that already exists (published *or* staged) cannot be staged
+  again; the workflow fails fast if the version is already published.
+
+### Token rotation and security limits
+
+- **Rotation:** before expiry, generate a new token with the same settings,
+  update the `NPM_TOKEN` secret, then revoke the old token (npmjs.com →
+  Access Tokens, or `npm token revoke`). Prefer short expirations.
+- A stage-only token is still sensitive: besides staging, it can **deprecate
+  versions and move dist-tags**. Treat it like any write credential.
+- **Bypass-2FA tokens are deliberately not used.** Publishing to npm requires
+  account 2FA or a bypass-2FA token; since August 2026 bypass tokens cannot
+  perform account-governance actions (token creation, maintainer changes),
+  and direct token publishing ends January 2027.
+- **Package publishing access:** once the package exists (after the first
+  staging), select **"Require two-factor authentication and disallow tokens
+  (recommended)"** on the package's Settings → Publishing access page — npm's
+  staged-publishing best practice. It blocks direct publishing with granular
+  tokens (bypass or not), which this workflow never does: CI only runs
+  `npm stage publish` (no 2FA prompt), and the release goes live solely via
+  the maintainer's interactive 2FA approval
+  ([npm stage best practices](https://docs.npmjs.com/cli/v12/commands/npm-stage#best-practices),
+  [package 2FA settings](https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification)).
+- Restrict who can create releases/tags in the GitHub repository settings;
+  anyone who can publish a release can trigger staging, but only a maintainer
+  with 2FA can make it live.
+
+### Local verification (no publish)
+
+```sh
+npm run smoke                 # pack -> temporary install -> import checks
+npm stage publish --dry-run   # reports what would be staged; no writes, no login needed
+```
+
+### Alternatives (not implemented)
+
+- **Trusted publishing (OIDC, no secret)** — npm's preferred long-term path,
+  but it is configured per *existing* package, requires `repository.url` in
+  `package.json` to exactly match the GitHub repo (this package has no
+  `repository` field yet), needs GitHub-hosted runners, and a new
+  configuration expires unless its first publish succeeds within 2 days.
+  Automatic provenance additionally requires a **public** repository; this
+  repo is not publicly visible via the unauthenticated GitHub API as of
+  2026-11-15. See [npm docs](https://docs.npmjs.com/trusted-publishers).
+- **Direct `npm publish` with a bypass-2FA token** — works only until
+  January 2027 and weakens 2FA; rejected.
+
+Design rationale, evidence, and the security analysis:
+[specs/publishing.md](specs/publishing.md).
 
 ## License
 

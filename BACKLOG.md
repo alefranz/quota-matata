@@ -12,7 +12,11 @@ Standalone OpenCode v2 retry plugin implemented and independently accepted.
 Delivery closed on 2026-11-15: commit `de23ee554d12ef38501db1c75f5be93529659eff` is on local `main` and remote `refs/heads/main` (verified with `git ls-remote`). Prior commit-and-push authorization fulfilled; no new Git actions authorized. No processes/services left running.
 
 ## Next action
-Wait for new user direction; revisit Token Plan handling only with confirmed product/route/provider-ID mapping and sanitized existing retry-hook error evidence (no live testing).
+User configures npm/GitHub `NPM_TOKEN` per README Publishing; review/commit changes separately before publishing a matching GitHub Release and approving the npm stage with 2FA.
+
+## Completed milestone — npm publishing
+Run `npm-publish-20261115`: strict, working-tree policy (recorded repository restriction: no new Git actions); ceiling 6 consumed 3.
+- [x] **T4 — npm publishing automation and setup.** 2026-11-15; allowance12 consumed3. README + new workflow/spec accepted; R4/R7 clean, real0.1.0 and scratch0.1.1 typecheck/540tests/build/smoke5 pass. Working-tree persistence finalized, no commits/pushes/publication. Archive: `.agenticale/handoffs/archive/2026-11.md`, **T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15**.
 
 ## Completed milestone — provider-agnostic positioning
 Preserve the generic engine and existing Alibaba-specific handling. Make the README clearly introduce a generic, provider-agnostic plugin rather than imply a single-provider product.
@@ -33,5 +37,5 @@ Closed run `provider-positioning-20261115`: strict mode, ceiling 6 consumed 2 wo
 ## Audit
 Full round ledger, accepted-slice records, original findings, verification, allowance grant/usage and final SHA256s: `.agenticale/handoffs/archive/2026-11.md`, **Final session-close delivery — 2026-11-14**.
 Prior delivery closure and preserved handoff: same archive, **Delivery closure and backlog-only session — 2026-11-15**.
-Current state: `.agenticale/handoffs/active.md` (run closed); archive **Session-close — provider-positioning-20261115 — 2026-11-15**.
+Current state: `.agenticale/handoffs/active.md` (npm run closed); archive **T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15**.
 Prior run finished at 18/20 worker rounds after explicit user doubling; all blockers closed. Provider-positioning milestone closed at 2/6 workers.
