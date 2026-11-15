@@ -1,0 +1,52 @@
+{
+  "name": "quota-matata",
+  "version": "0.1.0",
+  "description": "Quota Matata — no worries, just retries. Quota-aware retry plugin for OpenCode v2 (Alibaba Coding Plan and generic providers).",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./server": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/",
+    "smoke": "node scripts/package-smoke.mjs"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "quota",
+    "retry",
+    "alibaba",
+    "dashscope"
+  ],
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.3.0"
+  }
+}
