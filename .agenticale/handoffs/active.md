@@ -1,13 +1,15 @@
 ## GOAL
-COMPLETE: MIT Quota Matata (`quota-matata`), No worries, just retries. Standalone OpenCode v2 quota-aware retry plugin.
+CLOSED: provider-agnostic positioning and evidence-led coverage.
 ## ESTABLISHED
-User authorized "commit all and push" on 2026-11-15. Persist all current product/operational files on existing main and push origin/main without force; no package publishing or branch changes authorized. No submodules or running services. Host v2.3.0 @a6b15d33, SDK @opencode/plugin@2.3.0/effect4.1.0. Installed role assignments unchanged; effective child models unknown.
+Strict mode; working-tree only. No commit/push/branch/publication authorization. Baseline/main HEAD de23ee554d12ef38501db1c75f5be93529659eff. No live provider/API/auth/inference testing, credentials or deliberate errors; public docs/offline checks only.
+T1 evidence, T2 accepted docs/review and T3 decision archived in archive/2026-11.md under task headings and Session-close — provider-positioning-20261115 — 2026-11-15.
+README + specs/{core,integration,logging}.md generic-first, sourced provider limitations; runtime unchanged. Six public sources independently checked. Worker typecheck/540 tests passed; reviewer typecheck/537 targeted tests +16 assertions passed. Build/smoke not rerun docs-only.
 ## CURRENT STATE
-R31 integrated audit CLEAN; R27-01 provenance and R27-02 concurrency_limit fixed. Core R8/R9, logger R17, adapter R26 accepted. All blockers closed.
-540 tests/71 suites, typecheck/build, package smoke5/5, four timezones pass. Independent installed-package real-SDK939assertions/138JSONL records; native-cap and seven-day cancellation checks pass. Coordinator final typecheck/status checked.
-18/20 workers used;13 review/deep rounds. Explicit user doubling preserved counters: worker20, logger fixes4/reviews6 (used3/4,4/6). Core fixes2/2reviews3/3 clean; adapter2/2reviews3/3 clean; opportunistic1/1 used; periodic integrated re-audit1/2 clean; consults0.
-Full ledger, evidence, SHA256, delivery permissions and session-close: archive/2026-11.md Final session-close delivery.
+Run provider-positioning-20261115 ceiling 6 consumed 2; task T3 allowance 12 consumed 0. T1/T2 each allowance12 consumed1; all tasks closed, no pending dispatch. Reviews1, consults1, fixes0, deep0; no extensions.
+R1 work done; R2 work done; R3 review clean; R4 consult done — retain generic handling (high confidence). Independently advised decision adopted, user can veto.
+T3 no safely justified change without confirmed product/route/provider mapping and sanitized host-wire exhaustion evidence. Reset parsing needs unambiguous documented instant. Native retries may still continue on genuine exhaustion.
+Working-tree persistence confirmed; git diff --check clean, no runtime/test/dependency delta. Four product docs + three operational files modified, no commits/pushes. R3-N1/N2 and R11-N1/N2 tracked in BACKLOG. No services started.
 ## ACCEPTANCE
-Supported entry/options, generic engine/Alibaba, bounded safe JSONL, native fallback, terminal visibility, package/docs all accepted. No live provider quota E2E; native cap/process-liveness/terminal-metadata constraints documented. Nonblocking R11-N1/N2 BACKLOG.
+Generic-first docs independently accepted, existing Alibaba/generic handling preserved, uncertainty explicit; conditional runtime work closed based on evidence limitations.
 ## NEXT
-Commit current delivery and push origin/main under the user's explicit authorization; then verify clean status and matching remote HEAD. No package publishing.
+Wait for new user direction; reopen Token Plan handling only with confirmed identity/route/provider mapping and sanitized existing retry-hook evidence, without live testing.
