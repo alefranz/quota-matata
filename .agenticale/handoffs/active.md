@@ -1,13 +1,12 @@
 ## GOAL
 Fix Dependabot vulnerabilities first, then GitHub Actions failure; NPM_TOKEN added per user.
 ## ESTABLISHED
-Strict; commit and push explicitly authorized, including origin/main on resume, superseding prior working-tree restrictions. No repository AGENTS.md found. OpenCode binding; installed implement alibaba-token-plan/qwen4-max-preview#medium, hard same#xhigh, review openai/gpt-6.1-sol#high, deep openai/gpt-6-astra#high; effective unknown.
-Baseline main 12d8610, tracks origin/main; sole remote https://github.com/alefranz/quota-matata.git. Initial tree clean. Prior npm run closed; full packet in archive/2026-11.md, T4 — npm publishing — Session-close npm-publish-20261115 — 2026-11-15.
-Remote branch/Actions/alerts and local state can change concurrently. Preserve unrelated edits; no secrets, live provider tests, release or package publication.
+Strict; commit and push explicitly user-authorized incl ordinary origin/main. No repo AGENTS. OpenCode profiles: implement alibaba-token-plan/qwen4-max-preview#medium; hard same#xhigh; review openai/gpt-6.1-sol#high; deep openai/gpt-6-astra#high; effective unknown.
+No provider requests, secrets exposure, releases or package publication. Preserve unrelated changes.
 ## CURRENT STATE
-Run security-actions-20261115 ceiling6 consumed0; T5 allowance12 consumed0. T6 unselected. No dispatch/pending charge, fixes/reviews/consults0.
-Resume confirms local/remote main12d8610; user approved origin/main. No interrupted commits. Priority checkpoint pending; no product edits. Changes only BACKLOG.md and handoffs.
+Run security-actions-20261115 ceiling6 consumed1; T5 allowance12 consumed1. R1 work done,R2 review clean,R3 deep clean. Hard escalation1/1 used; periodic audit boundary e761bbd. T6 unselected. No pending rounds/fixes/consults.
+T5 product e761bbd confirmed origin/main; gh api alerts1/2 fixed. Audit0,544tests4zones,typecheck/build/smoke5 independently pass. Root-only overrides, consumer vulnerabilities disclosed. Nit T5-R3-N1 tracked. Detailed packet/reviews archive/2026-11.md heading T5 — Dependency remediation. Bounded state finalization pending; do not select T6 before confirmation.
 ## ACCEPTANCE
-T5: remediate current alerts with compatible dependencies; audit, relevant/full checks, independent strict review and applicable deep gate. T6: evidence-led failed Actions repair with independent review; never disclose NPM_TOKEN or publish packages/releases automatically.
+T5 accepted; persist state. T6 evidence-led Actions repair, relevant/full checks and strict review, never publish automatically.
 ## NEXT
-Persist priority checkpoint to approved origin/main, then implement bounded T5 dependency remediation.
+Confirm bounded T5 state finalization push to origin/main, then select T6 Actions diagnosis/repair.

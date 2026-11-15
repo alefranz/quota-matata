@@ -12,14 +12,14 @@ Standalone OpenCode v2 retry plugin implemented and independently accepted.
 Delivery closed on 2026-11-15: commit `de23ee554d12ef38501db1c75f5be93529659eff` is on local `main` and remote `refs/heads/main` (verified with `git ls-remote`). No processes/services left running. Historical delivery permissions are superseded for the current run by the explicit 2026-11-15 commit-and-push request.
 
 ## Next action
-Persist approved priority checkpoint to `origin/main`, then remediate T5 vulnerabilities.
+Confirm bounded T5 state finalization, then select T6 Actions diagnosis/repair.
 
 ## Current milestone — security and Actions repair
-Run `security-actions-20261115`: strict; commit and push explicitly authorized by user; ceiling6 consumed0. Default task allowance12 at first selection. No worker dispatched.
-- [ ] **T5 — Fix Dependabot-detected vulnerabilities (first priority).** Selected; allowance12 consumed0. Identify current alerts, apply compatible remediation, pass audit and relevant/full checks plus independent review. Preserve package/runtime contracts.
+Run `security-actions-20261115`: strict; commit and push explicitly authorized by user; ceiling6 consumed1. R1 work done; R2 review clean; R3 deep clean; T5 product e761bbd confirmed origin/main; alerts1/2 fixed; bounded state finalization pending.
+- [x] **T5 — Fix Dependabot vulnerabilities.** 2026-11-15; allowance12 consumed1; e761bbd confirmed origin/main; alerts1/2 fixed, audit0,544tests/build/smoke pass, R2/R3 clean. Archive: `.agenticale/handoffs/archive/2026-11.md`, **T5 — Dependency remediation**; state finalization confirmation required before next selection.
 - [ ] **T6 — Fix GitHub Actions failure (second priority).** Unselected; allowance not allocated. Diagnose actual failed run; repair and independently verify workflow with NPM_TOKEN now configured (user-reported). No secret disclosure or unauthorized release/package publication.
-- [ ] Inspect and remove operative repository commit/push restrictions conflicting with this explicit invocation as part of the affected task; preserve historical audit evidence. No repository AGENTS.md found.
-User explicitly approved ordinary pushes to `origin/main` on resume. Local and remote main both `12d8610`; no interrupted commits/pushes to reconcile. Priority checkpoint pending. Mutable surfaces: local checkout/state and remote branch/Actions/Dependabot may change concurrently; revalidate before work and every push. Never expose token values or trigger publication without separate authorization.
+- [x] Inspect and remove operative repository commit/push restrictions conflicting with this explicit invocation; no AGENTS.md or other operative restriction found; obsolete operational backlog restrictions superseded, historical audit preserved.
+User explicitly approved ordinary pushes to `origin/main` on resume. Priority checkpoint31e4b6e push confirmed by ls-remote; remote reports2 moderate vulnerabilities. Mutable surfaces: local checkout/state and remote branch/Actions/Dependabot may change concurrently; revalidate before work and every push. Never expose token values or trigger publication without separate authorization.
 Session-close pointer: `.agenticale/handoffs/archive/2026-11.md`, **security-actions-20261115 — destination gate**.
 
 ## Completed milestone — npm publishing
@@ -37,6 +37,7 @@ Closed run `provider-positioning-20261115`: strict mode, ceiling 6 consumed 2 wo
 **Hard constraint for all items:** do not test providers, send live API/inference/auth requests, use credentials, or deliberately trigger errors/quotas. Read public documentation and use offline tests only. Educated assumptions must be labeled and must not masquerade as documented behavior. If evidence is missing, leave generic handling and record the gap for future sanitized logs.
 
 ## Nonblocking follow-ups
+- [ ] T5-R3-N1: specs/integration.md:359–368 correct minimatch engine range and distinguish unoverridden consumer smoke, all-copy lock guards, and top-level installed guards.
 - [ ] R3-N1: README.md:426-427 broaden “Coding Plan phrases” to reflect shipped Alibaba billing/auth/throttling rules.
 - [ ] R3-N2: specs/logging.md:292-294 qualify unknown records as structure-only **by default**.
 - [ ] R11-N1: Clarify `state.dropped` semantics or separate cumulative drops from pending overflow; reports reset it and failed in-flight events are not counted.
