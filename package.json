@@ -31,7 +31,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/",
+    "test": "tsc -p tsconfig.test.json && node -e \"const fs=require('node:fs');const d='dist-test/test';const n=fs.existsSync(d)?fs.readdirSync(d).filter(f=>f.endsWith('.test.js')).length:0;if(!n){console.error('test gate: no compiled *.test.js files under '+d+' (did tsc emit?); refusing to pass with zero tests');process.exit(1)}\" && node --test dist-test/test/*.test.js",
     "smoke": "node scripts/package-smoke.mjs"
   },
   "keywords": [

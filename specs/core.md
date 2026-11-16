@@ -381,7 +381,14 @@ Highlights:
   later adapter can add a `./plugin` export with the Promise entry
   (`Plugin.define({id, setup})`) without touching the core.
 - Scripts: `npm run build` (src → dist), `npm run typecheck` (src+test,
-  noEmit), `npm test` (compile src+test → dist-test, `node --test`).
+  noEmit), `npm test` (compile src+test → dist-test, `node --test` over the
+  compiled `*.test.js` files). The test script passes an explicit file glob,
+  never a bare directory: since Node v21 the test runner treats a directory
+  argument as a single module entry and crashes with `MODULE_NOT_FOUND`
+  (nodejs/node#64555; directory search restored only in later releases), and
+  CI's Node 24 hits that form. A guard step then refuses to pass when zero
+  `*.test.js` files are present (a no-match glob would otherwise exit 0 with
+  an empty run), keeping the gate fail-closed.
 - Dev dependencies only: `typescript`, `@types/node`. Zero runtime deps.
 
 ## Verification
